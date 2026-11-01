@@ -1,0 +1,34 @@
+[
+  {
+    "title": "CTF team",
+    "teamId": "ctf",
+    "tagline": "We compete internationally as MaaSec and train anyone starting from zero.",
+    "benefits": "Mentorship from senior players\nFrom local challenges to international CTFs\nA direct line to consultancy work",
+    "open": true,
+    "order": 0
+  },
+  {
+    "title": "Consultancy team",
+    "teamId": "consultancy",
+    "tagline": "Carry out free security assessments for small organisations in the region.",
+    "benefits": "Help organisations that can't afford professional security\nEvery review checked by experienced members\nWork directly with local businesses and non-profits",
+    "open": true,
+    "order": 1
+  },
+  {
+    "title": "Software Development",
+    "teamId": "swe",
+    "tagline": "Ship real software for real users.",
+    "benefits": "Develop real features on real products\nSmall team, direct impact\nFlexible hours around your schedule",
+    "open": true,
+    "order": 2
+  },
+  {
+    "title": "Events team",
+    "teamId": "events",
+    "tagline": "Bring security talks, workshops and CTFs to the public. Join the team that runs them.",
+    "benefits": "Book speakers from companies like Google and Microsoft\nOrganise public talks, workshops and CTF events\nGrow MaaSec's reach across the region",
+    "open": true,
+    "order": 3
+  }
+]

@@ -1,0 +1,113 @@
+{
+  "groups": [
+    {
+      "title": "Our board",
+      "groupId": "board",
+      "": "Four people keeping the organisation running, our partners happy, and the teams winning.",
+      "surface": "blue",
+      "roles": null,
+      "order": 0
+    },
+    {
+      "title": "CTF team",
+      "groupId": "ctf",
+      "blurb": "The squad that competes internationally as MaaSec, and trains the next.",
+      "surface": "white",
+      "roles": "PWN\nReverse Engineering\nWeb Exploitation\nCryptography\nForensics\nOSINT",
+      "memberCount": 26,
+      "order": 1
+    },
+    {
+      "title": "Consultancy team",
+      "groupId": "consultancy",
+      "blurb": "Free security assessments for small businesses, non-profits and community organisations in the region. Members scope the engagement with the client and do the work; experienced members review everything before it is delivered.",
+      "surface": "white",
+      "roles": null,
+      "memberCount": null,
+      "order": 3
+    },
+    {
+      "title": "Software Development",
+      "groupId": "swe",
+      "blurb": "MaaSec's software team, building real products end to end for organisations that need something made. Right now that's Almo, an interactive study app for medical students.",
+      "surface": "white",
+      "roles": null,
+      "memberCount": 3,
+      "order": 2
+    },
+    {
+      "title": "Marketing team",
+      "groupId": "marketing",
+      "blurb": "Events, socials, and outreach that keep the labs full — running workshops and speaker nights, handling partner communications, and putting MaaSec in front of people who haven't found us yet.",
+      "surface": "blue",
+      "roles": null,
+      "memberCount": 1,
+      "order": 4
+    }
+  ],
+  "members": [
+    {
+      "title": "Luka Toplak",
+      "role": "Vice President",
+      "groupId": "board",
+      "order": 1,
+      "photo": "/images/board/luka.jpg"
+    },
+    {
+      "title": "Theodotos Neokleous",
+      "role": "President",
+      "groupId": "board",
+      "order": 0,
+      "photo": "/images/board/theo.jpg"
+    },
+    {
+      "title": "Ivan Borysov",
+      "role": "Treasurer",
+      "groupId": "board",
+      "order": 2,
+      "photo": "/images/board/ivan.png"
+    },
+    {
+      "title": "Andreas Constantinou",
+      "role": "Secretary",
+      "groupId": "board",
+      "order": 3,
+      "photo": "/images/board/andreas.png"
+    },
+    {
+      "title": "Francesco",
+      "role": "Captain — Web Exploitation",
+      "groupId": "ctf",
+      "order": 0,
+      "photo": "/logo-mark-dark.svg"
+    },
+    {
+      "title": "Theodotos Neokleous",
+      "role": "Web Exploitation",
+      "groupId": "ctf",
+      "order": 1,
+      "photo": "/images/board/theo.jpg"
+    },
+    {
+      "title": "Vlad Manolescu",
+      "role": "OSINT",
+      "groupId": "ctf",
+      "order": 2,
+      "photo": "/logo-mark-dark.svg"
+    },
+    {
+      "title": "Alexia-Mădălina Cîrstea",
+      "role": "OSINT",
+      "groupId": "ctf",
+      "order": 3,
+      "photo": "/logo-mark-dark.svg"
+    },
+    {
+      "title": "Andreas Constantinou",
+      "role": "Forensics",
+      "groupId": "ctf",
+      "order": 4,
+      "photo": "/images/board/andreas.png"
+    }
+  ]
+}

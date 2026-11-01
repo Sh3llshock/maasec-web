@@ -1,0 +1,636 @@
+import ctfData from "../../content/ctf.json";
+import ctftimeData from "../../content/ctftime.json";
+import eventsData from "../../content/events.json";
+import hiringData from "../../content/hiring.json";
+import joinTeamsData from "../../content/join-teams.json";
+import projectOverridesData from "../../content/project-overrides.json";
+import projectsData from "../../content/projects.json";
+import speakersData from "../../content/speakers.json";
+import teamData from "../../content/team.json";
+import writeupsData from "../../content/writeups.json";
+import { hiringProgramIds, type HiringProgramId } from "./site";
+
+/**
+ * All content lives in the `content/` directory as JSON, imported directly
+ * so it's baked into the static export at build time. Edit those files and
+ * rebuild for changes to go live.
+ */
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#8217;|&#8216;/g, "’")
+    .replace(/&#8220;|&#8221;/g, "”")
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// --- Events -------------------------------------------------------------
+
+export type EventCategory =
+  | "CTF"
+  | "Bug Bounty"
+  | "Lab"
+  | "Workshop"
+  | "Community";
+export type EventStatus = "open" | "limited" | "closed";
+
+export type EventMeta = {
+  slug: string;
+  title: string;
+  date: string; // ISO
+  time: string;
+  location: string;
+  category: EventCategory;
+  status?: EventStatus;
+  result?: string;
+  signupUrl?: string;
+};
+
+export type EventEntry = EventMeta & { body: string };
+
+type RawEvent = {
+  slug: string;
+  title: string;
+  content: string | null;
+  eventDate: string | null;
+  eventTime: string | null;
+  location: string | null;
+  category: string | null;
+  status: string | null;
+  result: string | null;
+  signupUrl: string | null;
+};
+
+export async function getEvents(): Promise<EventEntry[]> {
+  return (eventsData as RawEvent[])
+    .map((n) => ({
+      slug: n.slug,
+      title: n.title,
+      date: new Date(n.eventDate ?? "").toISOString(),
+      time: n.eventTime ?? "",
+      location: n.location ?? "",
+      category: (n.category ?? "Lab") as EventCategory,
+      status: (n.status || undefined) as EventStatus | undefined,
+      result: n.result || undefined,
+      signupUrl: n.signupUrl || undefined,
+      body: stripHtml(n.content ?? ""),
+    }))
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date));
+}
+
+/** Events dated today or later, soonest first. */
+export async function getUpcomingEvents(now = new Date()): Promise<EventEntry[]> {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const events = await getEvents();
+  return events
+    .filter((e) => +new Date(e.date) >= +start)
+    .sort((a, b) => +new Date(a.date) - +new Date(b.date));
+}
+
+/** Events before today, most recent first. */
+export async function getPastEvents(now = new Date()): Promise<EventEntry[]> {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const events = await getEvents();
+  return events.filter((e) => +new Date(e.date) < +start);
+}
+
+// --- Learn (resources, guides, writeups, blogs) --------------------------
+
+export type LearnCategory = "Resource" | "Guide" | "Writeup" | "Blog";
+
+export type LearnMeta = {
+  slug: string;
+  title: string;
+  date: string;
+  author: string;
+  team?: string;
+  tags: string[];
+  excerpt: string;
+  category: LearnCategory;
+};
+
+export type LearnEntry = LearnMeta & { body: string };
+
+type RawWriteup = {
+  slug: string;
+  title: string;
+  content: string | null;
+  excerpt: string | null;
+  writeupDate: string | null;
+  author: string | null;
+  team: string | null;
+  tags: string | null;
+  category: string | null;
+};
+
+export async function getLearnEntries(): Promise<LearnEntry[]> {
+  return (writeupsData as RawWriteup[])
+    .map((n) => ({
+      slug: n.slug,
+      title: n.title,
+      date: new Date(n.writeupDate ?? "").toISOString(),
+      author: n.author || "MaaSec",
+      team: n.team || undefined,
+      tags: (n.tags ?? "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      excerpt: stripHtml(n.excerpt ?? ""),
+      category: (n.category || "Writeup") as LearnCategory,
+      body: (n.content ?? "").trim(),
+    }))
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date));
+}
+
+export async function getLearnEntry(slug: string): Promise<LearnEntry | undefined> {
+  const entries = await getLearnEntries();
+  return entries.find((w) => w.slug === slug);
+}
+
+// --- Team & teams ---------------------------------------------------------
+
+export type Member = { name: string; role: string; photo?: string };
+
+/**
+ * A group lists either named `members` (with photos) or, where we don't
+ * publish individuals, just the `roles` the team covers. Exactly one of the
+ * two is set per group.
+ */
+export type TeamGroup = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  blurb: string;
+  surface: "white" | "blue";
+  members?: Member[];
+  roles?: string[];
+  /** Member count shown next to the section heading. Derived from
+   * `members.length` when the group lists named members; otherwise read
+   * from the group's own `memberCount` field (role-only groups have no
+   * named members to count). Omitted entirely when neither is set. */
+  memberCount?: number;
+};
+
+export type JoinTeam = {
+  id: string;
+  title: string;
+  tagline: string;
+  benefits: string[];
+  /** False when the team isn't currently recruiting — the Join form shows a
+   * "not accepting applications" message instead of the form for it. */
+  open: boolean;
+};
+
+type RawTeamGroup = {
+  title: string;
+  eyebrow: string | null;
+  groupId: string | null;
+  blurb: string | null;
+  surface: string | null;
+  roles: string | null;
+  memberCount?: number | null;
+  order: number;
+};
+
+type RawTeamMember = {
+  title: string;
+  role: string | null;
+  groupId: string | null;
+  order: number;
+  photo?: string;
+};
+
+export async function getTeamGroups(): Promise<TeamGroup[]> {
+  const groups = teamData.groups as RawTeamGroup[];
+  const members = [...(teamData.members as RawTeamMember[])].sort(
+    (a, b) => a.order - b.order,
+  );
+
+  return [...groups]
+    .sort((a, b) => a.order - b.order)
+    .map((g) => {
+      const id = g.groupId ?? "";
+      const groupMembers = members
+        .filter((m) => m.groupId === id)
+        .map((m) => ({
+          name: m.title,
+          role: m.role ?? "",
+          photo: m.photo,
+        }));
+      const roles = (g.roles ?? "")
+        .split("\n")
+        .map((r) => r.trim())
+        .filter(Boolean);
+
+      return {
+        id,
+        eyebrow: g.eyebrow ?? "",
+        title: g.title,
+        blurb: g.blurb ?? "",
+        surface: (g.surface ?? "white") as "white" | "blue",
+        members: groupMembers.length ? groupMembers : undefined,
+        roles: roles.length ? roles : undefined,
+        // An explicit total (e.g. CTF's real headcount vs. its short list of
+        // named members) always wins; otherwise fall back to counting the
+        // named members actually listed.
+        memberCount: g.memberCount ?? (groupMembers.length || undefined),
+      };
+    });
+}
+
+type RawJoinTeam = {
+  title: string;
+  teamId: string | null;
+  tagline: string | null;
+  benefits: string | null;
+  open?: boolean;
+  order: number;
+};
+
+export async function getJoinTeams(): Promise<JoinTeam[]> {
+  return [...(joinTeamsData as RawJoinTeam[])]
+    .sort((a, b) => a.order - b.order)
+    .map((t) => ({
+      id: t.teamId ?? "",
+      title: t.title,
+      tagline: t.tagline ?? "",
+      benefits: (t.benefits ?? "")
+        .split("\n")
+        .map((b) => b.trim())
+        .filter(Boolean),
+      open: t.open ?? true,
+    }));
+}
+
+// --- CTF team -------------------------------------------------------------
+
+export type CtfSeason = {
+  year: number;
+  /** Null while a season is still being played. CTFtime's API reports a
+   *  `country_place` for the running year that does not match its own
+   *  published country scoreboard, so an unfinished season carries no
+   *  placement here and the site never states one. */
+  countryPlace: number | null;
+  globalPlace: number | null;
+  points: number | null;
+  inProgress: boolean;
+};
+
+export type CtfCategory = { name: string; short: string; gloss: string };
+
+/** One competition's published result. Unlike a season standing, an
+ *  individual event's placement is final the moment the event ends — so
+ *  these are shown regardless of which year they fall in. */
+export type CtfResult = {
+  event: string;
+  year: number;
+  place: number;
+  totalTeams: number;
+  topPercent: number;
+  points: number;
+};
+
+export type CtfRecord = {
+  profileUrl: string;
+  /** Most recent season first. */
+  seasons: CtfSeason[];
+  /** The most recent season with a published placement — the only figure
+   *  the site quotes. Never an in-progress season. */
+  confirmed: CtfSeason & { countryPlace: number };
+  /** Every synced competition result, most recent first. */
+  results: CtfResult[];
+  writeups: {
+    url: string;
+    /** How many competition folders the repo actually holds. */
+    count: number;
+    lastPushedAt: string;
+    /** Competitions still present in the repo, curated in content/ctf.json
+     *  but filtered against the synced folder list, so the page can never
+     *  name — or link to — a competition that has been removed. `folder`
+     *  is the exact path segment under the repo's tree, for linking straight
+     *  into that competition's directory rather than just the repo root. */
+    named: { name: string; folder: string }[];
+  };
+  syncedAt: string;
+};
+
+export async function getCtfRecord(): Promise<CtfRecord> {
+  const seasons = [...ctftimeData.seasons].sort(
+    (a, b) => b.year - a.year,
+  ) as CtfSeason[];
+
+  const present = new Set(ctftimeData.writeups.competitions);
+  const named = ctfData.marqueeCompetitions
+    .filter((c) => present.has(c.folder))
+    .map((c) => ({ name: c.name, folder: c.folder }));
+
+  const confirmed = seasons.find(
+    (s): s is CtfSeason & { countryPlace: number } => s.countryPlace !== null,
+  );
+  if (!confirmed) {
+    throw new Error("content/ctftime.json has no completed-season placement");
+  }
+
+  return {
+    profileUrl: ctftimeData.team.url,
+    seasons,
+    confirmed,
+    results: ctftimeData.results as CtfResult[],
+    writeups: {
+      url: ctftimeData.writeups.url,
+      count: ctftimeData.writeups.competitions.length,
+      lastPushedAt: ctftimeData.writeups.lastPushedAt,
+      named,
+    },
+    syncedAt: ctftimeData.syncedAt,
+  };
+}
+
+export async function getCtfCategories(): Promise<CtfCategory[]> {
+  return [...ctfData.categories]
+    .sort((a, b) => a.order - b.order)
+    .map(({ name, short, gloss }) => ({ name, short, gloss }));
+}
+
+/** Headcount for the CTF squad, read from the same place /team reads it. */
+export async function getCtfMemberCount(): Promise<number | undefined> {
+  const groups = await getTeamGroups();
+  return groups.find((g) => g.id === "ctf")?.memberCount;
+}
+
+type RawSpeaker = { title: string; order: number };
+
+/** Guest-speaker company names — the "hosted industry experts from" list. */
+export async function getSpeakers(): Promise<string[]> {
+  return [...(speakersData as RawSpeaker[])]
+    .sort((a, b) => a.order - b.order)
+    .map((s) => s.title);
+}
+
+// --- Projects -------------------------------------------------------------
+
+export type ProjectCategoryId =
+  | "flagship"
+  | "tooling"
+  | "learning"
+  | "other"
+  | "archive";
+
+export type ProjectCategory = {
+  id: ProjectCategoryId;
+  title: string;
+  blurb: string;
+};
+
+export type Project = {
+  /** GitHub repo name, or the extra's id for projects with no public repo. */
+  id: string;
+  title: string;
+  summary: string;
+  category: ProjectCategoryId;
+  featured: boolean;
+  status?: string;
+  /** Public repository, when there is one. */
+  repoUrl?: string;
+  /** Where the title links: an internal page for extras, else the repo. */
+  href: string;
+  homepage?: string;
+  language?: string;
+  topics: string[];
+  stars: number;
+  license?: string;
+  fork: boolean;
+  pushedAt?: string;
+  /** Set when this project is recruiting through /hiring. */
+  hiringProgram?: HiringProgramId;
+};
+
+type RawRepo = (typeof projectsData.repos)[number];
+
+type RepoOverride = {
+  title?: string;
+  summary?: string;
+  category?: string;
+  featured?: boolean;
+  status?: string;
+  hiringProgram?: string;
+  hidden?: boolean;
+  order?: number;
+};
+
+type RawExtra = {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  featured?: boolean;
+  status?: string;
+  href: string;
+  order?: number;
+};
+
+const CATEGORY_IDS: ProjectCategoryId[] = [
+  "flagship",
+  "tooling",
+  "learning",
+  "other",
+  "archive",
+];
+
+function toCategory(value: string | undefined, fallback: ProjectCategoryId) {
+  return (CATEGORY_IDS as string[]).includes(value ?? "")
+    ? (value as ProjectCategoryId)
+    : fallback;
+}
+
+function toHiringProgram(value: string | undefined) {
+  return (hiringProgramIds as readonly string[]).includes(value ?? "")
+    ? (value as HiringProgramId)
+    : undefined;
+}
+
+/** Turns a repo slug into something readable when nobody has named it yet. */
+function titleFromRepo(name: string): string {
+  return name.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * content/projects.json is machine-synced from GitHub; project-overrides.json
+ * adds the editorial layer. A repo with no override still appears, under
+ * "other", so a new repo is never silently missing from the page.
+ */
+export async function getProjects(): Promise<{
+  categories: ProjectCategory[];
+  projects: Project[];
+  orgUrl: string;
+  syncedAt: string;
+}> {
+  const overrides = projectOverridesData.repos as Record<string, RepoOverride>;
+  const orderOf = new Map<string, number>();
+
+  const fromRepos = (projectsData.repos as RawRepo[])
+    .filter((repo) => !overrides[repo.name]?.hidden)
+    .map((repo): Project => {
+      const o = overrides[repo.name] ?? {};
+      // Uncurated repos sort after curated ones, newest push first (the
+      // synced file is already in that order).
+      orderOf.set(repo.name, o.order ?? 1000);
+      return {
+        id: repo.name,
+        title: o.title ?? titleFromRepo(repo.name),
+        summary:
+          o.summary ||
+          repo.description ||
+          "No description yet — see the repository for details.",
+        category: toCategory(o.category, "other"),
+        featured: o.featured === true,
+        status: o.status,
+        repoUrl: repo.url,
+        href: repo.url,
+        homepage: repo.homepage ?? undefined,
+        language: repo.language ?? undefined,
+        topics: repo.topics,
+        stars: repo.stars,
+        license: repo.license ?? undefined,
+        fork: repo.fork,
+        pushedAt: repo.pushedAt,
+        hiringProgram: toHiringProgram(o.hiringProgram),
+      };
+    });
+
+  const fromExtras = (projectOverridesData.extras as RawExtra[]).map(
+    (e): Project => {
+      orderOf.set(e.id, e.order ?? 1000);
+      return {
+        id: e.id,
+        title: e.title,
+        summary: e.summary,
+        category: toCategory(e.category, "other"),
+        featured: e.featured === true,
+        status: e.status,
+        href: e.href,
+        topics: [],
+        stars: 0,
+        fork: false,
+      };
+    },
+  );
+
+  const projects = [...fromRepos, ...fromExtras].sort(
+    (a, b) => (orderOf.get(a.id) ?? 1000) - (orderOf.get(b.id) ?? 1000),
+  );
+
+  return {
+    categories: projectOverridesData.categories as ProjectCategory[],
+    projects,
+    orgUrl: projectsData.orgUrl,
+    syncedAt: projectsData.syncedAt,
+  };
+}
+
+// --- Hiring ---------------------------------------------------------------
+
+export type HiringRole = {
+  id: string;
+  title: string;
+  summary: string;
+  open: boolean;
+};
+
+export type HiringProgram = {
+  id: HiringProgramId;
+  /** "team" programs are the standing MaaSec teams, built from
+   * content/join-teams.json; "project" programs live in content/hiring.json. */
+  kind: "team" | "project";
+  title: string;
+  tagline: string;
+  about: string;
+  lookingFor: string[];
+  /** What a member gets out of it — shown for teams. */
+  benefits: string[];
+
+  open: boolean;
+  roles: HiringRole[];
+  /** Public repo URL, resolved from the synced project list. */
+  repoUrl?: string;
+};
+
+type RawProgram = {
+  id: string;
+  title: string;
+  repo?: string;
+  tagline: string;
+  about: string;
+  lookingFor: string[];
+  open?: boolean;
+  order: number;
+  roles: { id: string; title: string; summary: string; open?: boolean }[];
+};
+
+/**
+ * Every recruitment program, in display order: the standing teams first, then
+ * the projects. Pass `kind` to get only one group (/hiring lists projects
+ * only; /join lists everything).
+ */
+export async function getHiringPrograms(
+  kind?: HiringProgram["kind"],
+): Promise<HiringProgram[]> {
+  const repos = new Map(
+    (projectsData.repos as RawRepo[]).map((r) => [r.name, r.url]),
+  );
+
+  const teams = (await getJoinTeams())
+    .filter((t) => toHiringProgram(t.id))
+    .map(
+      (t): HiringProgram => ({
+        id: t.id as HiringProgramId,
+        kind: "team",
+        title: t.title,
+        tagline: t.tagline,
+        about: "",
+        lookingFor: [],
+        benefits: t.benefits,
+        open: t.open,
+        // Teams have no separate roles; one placeholder keeps the Worker's
+        // payload identical to a project application.
+        roles: [
+          {
+            id: "member",
+            title: "Team member",
+            summary: `Join the ${t.title}.`,
+            open: t.open,
+          },
+        ],
+      }),
+    );
+
+  const projects = [...(hiringData.programs as RawProgram[])]
+    .filter((p) => toHiringProgram(p.id))
+    .sort((a, b) => a.order - b.order)
+    .map((p): HiringProgram => ({
+      id: p.id as HiringProgramId,
+      kind: "project",
+      benefits: [],
+      title: p.title,
+      tagline: p.tagline,
+      about: p.about,
+      lookingFor: p.lookingFor,
+      open: p.open ?? true,
+      roles: p.roles.map((r) => ({ ...r, open: r.open ?? true })),
+      repoUrl: p.repo ? repos.get(p.repo) : undefined,
+    }));
+
+  const all = [...teams, ...projects];
+  return kind ? all.filter((p) => p.kind === kind) : all;
+}

@@ -1,0 +1,185 @@
+import type { Metadata } from "next";
+import { Achievements } from "@/components/about/achievements";
+import { Mission } from "@/components/about/mission";
+import { UrgencyStats } from "@/components/about/urgency-stats";
+import { WhatWeDo } from "@/components/about/what-we-do";
+import { JoinCta } from "@/components/home/join-cta";
+import { Footer } from "@/components/site/footer";
+import { Nav } from "@/components/site/nav";
+import { ImageSlot } from "@/components/ui/image-slot";
+import { getCtfRecord, getJoinTeams } from "@/lib/content";
+import { ordinal } from "@/lib/format";
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Why MaaSec exists: free security assessments, advice and awareness training for small organisations in the Maastricht and Heuvelland region that can't afford professional help.",
+};
+
+const members = [
+  {
+    name: "Andreas Constantinou",
+    role: "3rd year, Computer Science",
+    quote:
+      "I always wanted to compete in CTFs, but they looked too difficult. After joining a competition with MaaSec, I helped the CTF team achieve a top 3% placement at THEM?!CTF.",
+  },
+  {
+    name: "Theodotos Neokleous",
+    role: "3rd year, Computer Science",
+    quote:
+      "Our CTF captain’s dedication and work ethic were crucial in helping MaaSec secure 2nd place in the Netherlands in 2026.",
+  },
+];
+
+export default async function AboutPage() {
+  const [teams, ctf] = await Promise.all([getJoinTeams(), getCtfRecord()]);
+
+  return (
+    <>
+      <Nav />
+      <main id="main-content" tabIndex={-1}>
+        <header className="mx-auto flex max-w-[840px] flex-col items-center gap-5 px-6 pt-24 pb-9 text-center">
+          <h1 className="font-display text-[clamp(40px,6vw,72px)] leading-[1.02] font-extrabold tracking-[-0.04em] text-blue-900">
+            Our story
+          </h1>
+        </header>
+
+        {/* Story card */}
+        <div className="mx-auto mb-16 max-w-[1160px] rounded-card bg-blue-100 px-6 py-12 md:px-14">
+          <div className="grid items-center gap-16 md:grid-cols-2">
+            <ImageSlot
+              src="/images/gallery/team2.jpg"
+              alt="The MaaSec club"
+              label="Photo — the team"
+              radius={10}
+              className="aspect-[4/3] w-full"
+            />
+            <div className="flex flex-col gap-7">
+              <div className="flex flex-col gap-4">
+                <p className="font-body text-[17px] leading-[1.65] text-gray-700">
+                  Small businesses, non-profits and community organisations
+                  face the same attacks as large companies, but most can&rsquo;t
+                  afford professional security help. Many don&rsquo;t know
+                  where to start, and a single phishing email or ransomware
+                  infection can be enough to put them out of action.
+                </p>
+                <p className="font-body text-[17px] leading-[1.65] text-gray-700">
+                  MaaSec exists to close that gap. Our volunteer members carry
+                  out free security assessments, give practical advice and run
+                  awareness training, and we organise public talks, workshops
+                  and capture-the-flag events for anyone who wants to learn.
+                </p>
+              </div>
+              <p className="font-display text-[26px] leading-[1.32] font-semibold tracking-[-0.02em] text-blue-900 text-pretty">
+                Good security shouldn&rsquo;t depend on the size of your
+                budget.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <UrgencyStats />
+
+        <Mission />
+
+        <WhatWeDo teams={teams} />
+
+        <Achievements
+          nationalPlace={ordinal(ctf.confirmed.countryPlace)}
+          nationalNote={`Our CTF team's national ranking in ${ctf.confirmed.year}.`}
+        />
+
+        {/* Gallery */}
+        <section className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 py-24 md:px-14">
+          <h2
+            data-reveal
+            className="font-display text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-bold tracking-[-0.03em] text-blue-900"
+          >
+            Workshops, competitions, and everything between
+          </h2>
+          {/*
+            Bento grid sized to each photo's real aspect ratio (checked via
+            sharp): landscape/square photos get wide 2x2 tiles, portraits
+            get tall 1x2 tiles. This exact combination — three 2x2s and two
+            1x2s — fills a 4-col grid with zero empty cells (16 of 16
+            cells occupied); reordering or swapping spans breaks that.
+          */}
+          <div className="grid auto-rows-[130px] grid-cols-2 gap-4 md:auto-rows-[180px] md:grid-cols-4">
+            <ImageSlot
+              src="/images/gallery/ctf.jpg"
+              alt="CTF weekend"
+              label="CTF weekend"
+              radius={10}
+              className="col-span-2 row-span-2 transition-transform duration-[260ms] hover:scale-[1.015]"
+            />
+            <ImageSlot
+              src="/images/gallery/back_speaker.jpeg"
+              alt="Guest talk"
+              label="Guest talk"
+              radius={10}
+              className="row-span-2 transition-transform duration-[260ms] hover:scale-[1.015]"
+            />
+            <ImageSlot
+              src="/images/gallery/team1.jpg"
+              alt="Team photo"
+              label="Team photo"
+              radius={10}
+              className="row-span-2 transition-transform duration-[260ms] hover:scale-[1.015]"
+            />
+            <ImageSlot
+              src="/images/gallery/speaker.jpg"
+              alt="Lab night"
+              label="Lab night"
+              radius={10}
+              className="col-span-2 row-span-2 transition-transform duration-[260ms] hover:scale-[1.015]"
+            />
+            <ImageSlot
+              src="/images/graphics/gallery-1.png"
+              alt="Awards moment"
+              label="Awards moment"
+              radius={10}
+              className="col-span-2 row-span-2 transition-transform duration-[260ms] hover:scale-[1.015]"
+            />
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="bg-blue-100 px-6 py-24 md:px-14">
+          <div className="mx-auto flex max-w-[1160px] flex-col gap-10">
+            <h2
+              data-reveal
+              className="font-display text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-bold tracking-[-0.03em] text-blue-900"
+            >
+              What our members say
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              {members.map((member, i) => (
+                <figure
+                  key={member.name}
+                  data-reveal
+                  style={{ ["--reveal-delay" as string]: `${i * 100}ms` }}
+                  className="flex flex-col gap-[18px] rounded-card bg-white p-8"
+                >
+                  <figcaption className="flex flex-col">
+                    <span className="font-display text-sm leading-tight font-semibold text-blue-900">
+                      {member.name}
+                    </span>
+                    <span className="font-body text-[12.5px] leading-tight text-gray-600">
+                      {member.role}
+                    </span>
+                  </figcaption>
+                  <blockquote className="font-display text-lg leading-[1.4] font-bold tracking-[-0.01em] text-blue-900">
+                    &ldquo;{member.quote}&rdquo;
+                  </blockquote>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <JoinCta />
+      </main>
+      <Footer />
+    </>
+  );
+}
